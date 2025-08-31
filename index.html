@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>拼音学习：测试 & 复习</title>
+  <style>
+    :root{ --brand:#4a80f0; }
+    *{box-sizing:border-box}
+    body { display:flex; justify-content:center; align-items:center; height:100vh; background:#f5f5f5; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin:0; }
+    .card { background:#fff; padding:22px; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.12); text-align:center; width:min(720px,96vw); }
+    h1 { font-size:20px; margin:0 0 10px; font-weight:700; letter-spacing:.5px; color:#111 }
+    .modebar{display:flex; gap:8px; justify-content:center; margin-bottom:12px}
+    .tab{padding:8px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:14px}
+    .tab.active{background:var(--brand); color:#fff; border-color:var(--brand)}
+    .row{margin-top:10px}
+    .char { font-size:76px; font-weight:800; margin:16px 0; letter-spacing:4px; }
+    input { padding:10px; font-size:18px; width:90%; border:1px solid #ccc; border-radius:10px; text-align:center; }
+    .btns { display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+    button { padding:10px 14px; font-size:16px; border:none; border-radius:10px; background:var(--brand); color:#fff; cursor:pointer; }
+    button.secondary{ background:#e5e7eb; color:#111; }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+    .result { margin-top:10px; font-size:18px; min-height:28px; }
+    .pinyin { font-weight:700; color:#111; }
+    .ok { color:#16a34a; }
+    .err { color:#dc2626; }
+    .meta{margin-top:8px;color:#666;font-size:12px}
+    .hidden{display:none}
+
+    /* —— 复习模式（翻转卡片） —— */
+    .flash-wrap{ perspective:1000px; margin-top:8px }
+    .flip{ position:relative; width:min(520px,86vw); height:280px; margin:0 auto; transform-style:preserve-3d; transition:transform .5s ease; cursor:pointer; }
+    .flip.flipped{ transform:rotateY(180deg); }
+    .face{ position:absolute; inset:0; background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; backface-visibility:hidden; padding:16px }
+    .front .glyph{ font-size:96px; font-weight:800; letter-spacing:6px }
+    .back{ transform:rotateY(180deg); }
+    .back .py{ font-size:40px; font-weight:800; margin-bottom:8px }
+    .back .en{ font-size:20px; color:#374151 }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>拼音学习</h1>
+
+    <div class="modebar">
+      <button class="tab active" id="tabTest">测试</button>
+      <button class="tab" id="tabReview">复习</button>
+    </div>
+
+    <!-- 测试模式 -->
+    <div id="modeTest">
+      <div class="char" id="char">字</div>
+      <input type="text" id="answer" placeholder="拼音（可不带声调 / 支持数字调 ni3）" />
+      <div class="btns">
+        <button id="submit">提交 (Enter)</button>
+        <button id="next" class="secondary" disabled>下一题 (Enter)</button>
+        <button id="reshuffle" class="secondary">重洗</button>
+      </div>
+      <div class="result" id="result"></div>
+      <div class="meta"><span id="progress"></span></div>
+    </div>
+
+    <!-- 复习模式：翻转卡片 -->
+    <div id="modeReview" class="hidden">
+      <div class="flash-wrap">
+        <div class="flip" id="flip">
+          <div class="face front"><div class="glyph" id="rvChar">字</div></div>
+          <div class="face back">
+            <div>
+              <div class="py" id="rvPy">pīn yīn</div>
+              <div class="en" id="rvEn">meaning</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="btns">
+        <button id="btnFlip">翻转 (Space)</button>
+        <button id="btnNextReview" class="secondary">下一张 (Enter)</button>
+        <button id="btnReshuffle2" class="secondary">重洗</button>
+      </div>
+      <div class="meta"><span id="progress2"></span></div>
+    </div>
+  </div>
+
+<script>
+// ===== 500 高频字 =====
+const CHAR_BANK = `的 一 是 了 我 不 人 在 他 有 这 个 上 们 来 到 时 大 地 为\n
+子 中 你 说 生 国 年 着 就 那 和 要 她 出 也 得 里 后 自 以 会 家 可 下 而 过 天 去 能 对 小 多 然 于 心 学 么 之 都 好 看 起 发 当 没 成 只 如 事 把 还 用 第 样 道 想 作 种 开 美 总 从 无 情 己 面 最 女 但 现 前 些 所 同 日 手 又 行 意 动 方 期 它 头 经 长 儿 回 位 分 爱 老 因 很 给 名 法 间 斯 知 世 什 两 次 使 身 者 被 高 已 亲 其 进 此 话 常 与 活 正 感 见 明 问 力 理 尔 点 文 几 定 本 公 特 做 外 孩 相 西 果 走 将 月 十 实 向 声 车 全 信 重 三 机 工 物 气 每 并 别 真 打 太 新 比 才 便 夫 再 书 部 水 像 眼 等 体 却 加 电 主 界 门 利 海 受 听 表 德 少 克 代 员 许 先 口 由 死 安 写 性 马 光 白 或 住 难 望 教 命 花 结 乐 色 更 拉 东 神 记 处 让 母 父 应 直 字 场 平 报 友 关 放 至 张 认 接 告 入 笑 内 英 军 候 民 岁 往 何 度 山 觉 路 带 万 男 边 风 解 叫 任 金 快 原 吃 妈 变 通 师 立 象 数 四 失 满 战 远 格 士 音 轻 目 条 呢 病 始 达 深 完 今 提 求 清 王 化 空 业 思 切 怎 非 找 片 罗 钱 吗 语 元 喜 曾 离 飞 科 言 干 流 欢 约 各 即 指 合 反 题 必 该 论 交 终 林 请 医 晚 制 球 决 传 画 保 读 运 及 则 房 早 院 量 苦 火 布 品 近 坐 产 答 星 精 视 五 连 司 巴 奇 管 类 未 朋 且 婚 台 夜 青 北 队 久 乎 越 观 落 尽 形 影 红 爸 百 令 周 吧 识 步 希 亚 术 留 市 半 热 送 兴 造 谈 容 极 随 演 收 首 根 讲 整 式 取 照 办 强 石 古 华 拿 计 您 装 似 足 双 妻 尼 转 诉 米 称 丽 客 南 领 节 衣 站 黑 刻 统 断 福 城 故 历 惊 脸 选 包 紧 争 另 建 维 绝 树 系 伤 示 愿 持 千 史 谁 准 联 妇 纪 基 买 志 静 阿 诗 独 复 痛 消 社 算 义 竟 确 酒`;
+
+// ——拼音词典（带声调，示例；其余仍可判分）
+const PINYIN = {
+  '的':'de','一':'yī','是':'shì','了':'le','我':'wǒ','不':'bù','人':'rén','在':'zài','他':'tā','有':'yǒu','这':'zhè','个':'gè','上':'shàng','们':'men','来':'lái','到':'dào','时':'shí','大':'dà','地':'dì','为':'wèi','子':'zǐ','中':'zhōng','你':'nǐ','说':'shuō','生':'shēng','国':'guó','年':'nián','着':'zhe','就':'jiù','那':'nà','和':'hé','要':'yào','她':'tā','出':'chū','也':'yě','得':'dé','里':'lǐ','后':'hòu','自':'zì','以':'yǐ','会':'huì','家':'jiā','可':'kě','下':'xià','而':'ér','过':'guò','天':'tiān','去':'qù','能':'néng','对':'duì','小':'xiǎo','多':'duō','然':'rán','于':'yú','心':'xīn','学':'xué','么':'me','之':'zhī','都':'dōu','好':'hǎo','看':'kàn','起':'qǐ','发':'fā','当':'dāng','没':'méi','成':'chéng','只':'zhǐ','如':'rú','事':'shì','把':'bǎ','还':'hái','用':'yòng','第':'dì','样':'yàng','道':'dào','想':'xiǎng','作':'zuò','种':'zhǒng','开':'kāi','美':'měi','总':'zǒng','从':'cóng','无':'wú','情':'qíng','己':'jǐ','面':'miàn','最':'zuì','女':'nǚ','但':'dàn','现':'xiàn','前':'qián','些':'xiē','所':'suǒ','同':'tóng','日':'rì','手':'shǒu','又':'yòu','行':'xíng','意':'yì','动':'dòng','方':'fāng','期':'qī','它':'tā','头':'tóu','经':'jīng','长':'cháng','儿':'ér','回':'huí','位':'wèi','分':'fēn','爱':'ài','老':'lǎo','因':'yīn','很':'hěn','给':'gěi','名':'míng','法':'fǎ','间':'jiān','斯':'sī','知':'zhī','世':'shì','什':'shén','两':'liǎng','次':'cì','使':'shǐ','身':'shēn','者':'zhě','被':'bèi','高':'gāo','已':'yǐ','亲':'qīn','其':'qí','进':'jìn','此':'cǐ','话':'huà','常':'cháng','与':'yǔ','活':'huó','正':'zhèng','感':'gǎn','见':'jiàn','明':'míng','问':'wèn','力':'lì','理':'lǐ','尔':'ěr','点':'diǎn','文':'wén','几':'jǐ','定':'dìng','本':'běn','公':'gōng','特':'tè','做':'zuò','外':'wài','孩':'hái','相':'xiāng','西':'xī','果':'guǒ','走':'zǒu','将':'jiāng','月':'yuè','十':'shí','实':'shí','向':'xiàng','声':'shēng','车':'chē','全':'quán','信':'xìn','重':'zhòng','三':'sān','机':'jī','工':'gōng','物':'wù','气':'qì','每':'měi','并':'bìng','别':'bié','真':'zhēn','打':'dǎ','太':'tài','新':'xīn','比':'bǐ','才':'cái','便':'biàn','夫':'fū','再':'zài','书':'shū','部':'bù','水':'shuǐ','像':'xiàng','眼':'yǎn','等':'děng','体':'tǐ','却':'què','加':'jiā','电':'diàn','主':'zhǔ','界':'jiè','门':'mén','利':'lì','海':'hǎi','受':'shòu','听':'tīng','表':'biǎo','德':'dé','少':'shǎo','克':'kè','代':'dài','员':'yuán','许':'xǔ','先':'xiān','口':'kǒu','由':'yóu','死':'sǐ','安':'ān','写':'xiě','性':'xìng','马':'mǎ','光':'guāng','白':'bái','或':'huò','住':'zhù','难':'nán','望':'wàng','教':'jiào','命':'mìng','花':'huā','结':'jié','乐':'lè','色':'sè','更':'gèng','拉':'lā','东':'dōng','神':'shén','记':'jì','处':'chù','让':'ràng','母':'mǔ','父':'fù','应':'yīng','直':'zhí','字':'zì','场':'chǎng','平':'píng','报':'bào','友':'yǒu','关':'guān','放':'fàng','至':'zhì','张':'zhāng','认':'rèn','接':'jiē','告':'gào','入':'rù','笑':'xiào','内':'nèi','英':'yīng','军':'jūn','候':'hòu','民':'mín','岁':'suì','往':'wǎng','何':'hé','度':'dù','山':'shān','觉':'jué','路':'lù','带':'dài','万':'wàn','男':'nán','边':'biān','风':'fēng','解':'jiě','叫':'jiào','任':'rèn','金':'jīn','快':'kuài','原':'yuán','吃':'chī','妈':'mā','变':'biàn','通':'tōng','师':'shī','立':'lì','象':'xiàng','数':'shù','四':'sì','失':'shī','满':'mǎn','战':'zhàn','远':'yuǎn','格':'gé','士':'shì','音':'yīn','轻':'qīng','目':'mù','条':'tiáo','呢':'ne','病':'bìng','始':'shǐ','达':'dá','深':'shēn','完':'wán','今':'jīn','提':'tí','求':'qiú','清':'qīng','王':'wáng','化':'huà','空':'kōng','业':'yè','思':'sī','切':'qiè','怎':'zěn','非':'fēi','找':'zhǎo','片':'piàn','罗':'luó','钱':'qián','吗':'ma','语':'yǔ','元':'yuán','喜':'xǐ','曾':'céng','离':'lí','飞':'fēi','科':'kē','言':'yán','干':'gān','流':'liú','欢':'huān','约':'yuē','各':'gè','即':'jí','指':'zhǐ','合':'hé','反':'fǎn','题':'tí','必':'bì','该':'gāi','论':'lùn','交':'jiāo','终':'zhōng','林':'lín','请':'qǐng','医':'yī','晚':'wǎn','制':'zhì','球':'qiú','决':'jué','传':'chuán','画':'huà','保':'bǎo','读':'dú','运':'yùn','及':'jí','则':'zé','房':'fáng','早':'zǎo','院':'yuàn','量':'liàng','苦':'kǔ','火':'huǒ','布':'bù','品':'pǐn','近':'jìn','坐':'zuò','产':'chǎn','答':'dá','星':'xīng','精':'jīng','视':'shì','五':'wǔ','连':'lián','司':'sī','巴':'bā','奇':'qí','管':'guǎn','类':'lèi','未':'wèi','朋':'péng','且':'qiě','婚':'hūn','台':'tái','夜':'yè','青':'qīng','北':'běi','队':'duì','久':'jiǔ','乎':'hū','越':'yuè','观':'guān','落':'luò','尽':'jìn','形':'xíng','影':'yǐng','红':'hóng','爸':'bà','百':'bǎi','令':'lìng','周':'zhōu','吧':'ba','识':'shí','步':'bù','希':'xī','亚':'yà','术':'shù','留':'liú','市':'shì','半':'bàn','热':'rè','送':'sòng','兴':'xìng','造':'zào','谈':'tán','容':'róng','极':'jí','随':'suí','演':'yǎn','收':'shōu','首':'shǒu','根':'gēn','讲':'jiǎng','整':'zhěng','式':'shì','取':'qǔ','照':'zhào','办':'bàn','强':'qiáng','石':'shí','古':'gǔ','华':'huá','拿':'ná','计':'jì','您':'nín','装':'zhuāng','似':'sì','足':'zú','双':'shuāng','妻':'qī','尼':'ní','转':'zhuǎn','诉':'sù','米':'mǐ','称':'chēng','丽':'lì','客':'kè','南':'nán','领':'lǐng','节':'jié','衣':'yī','站':'zhàn','黑':'hēi','刻':'kè','统':'tǒng','断':'duàn','福':'fú','城':'chéng','故':'gù','历':'lì','惊':'jīng','脸':'liǎn','选':'xuǎn','包':'bāo','紧':'jǐn','争':'zhēng','另':'lìng','建':'jiàn','维':'wéi','绝':'jué','树':'shù','系':'xì','伤':'shāng','示':'shì','愿':'yuàn','持':'chí','千':'qiān','史':'shǐ','谁':'shuí','准':'zhǔn','联':'lián','妇':'fù','纪':'jì','基':'jī','买':'mǎi','志':'zhì','静':'jìng','阿':'ā','诗':'shī','独':'dú','复':'fù','痛':'tòng','消':'xiāo','社':'shè','算':'suàn','义':'yì','竟':'jìng','确':'què','酒':'jiǔ'
+};
+
+// ——英文单词释义（简明，一词；示例，逐步可补全）
+const EN = {
+  '的':'of','一':'one','是':'be','了':'particle','我':'I','不':'not','人':'person','在':'at','他':'he','有':'have','这':'this','个':'unit','上':'up','们':'plural','来':'come','到':'arrive','时':'time','大':'big','地':'ground','为':'for','子':'child','中':'middle','你':'you','说':'say','生':'life','国':'country','年':'year','着':'hold','就':'then','那':'that','和':'and','要':'want','她':'she','出':'out','也':'also','得':'get','里':'in','后':'after','自':'self','以':'with','会':'can','家':'home','可':'may','下':'down','而':'and','过':'pass','天':'sky','去':'go','能':'able','对':'to','小':'small','多':'many','然':'so','于':'in','心':'heart','学':'learn','么':'what','之':'of','都':'all','好':'good','看':'see','起':'rise','发':'send','当':'when','没':'not','成':'become','只':'only','如':'as','事':'thing','把':'hold','还':'still','用':'use','第':'No.','样':'kind','道':'way','想':'think','作':'make','种':'type','开':'open','美':'beauty','总':'total','从':'from','无':'none','情':'feeling','己':'self','面':'face','最':'most','女':'female','但':'but','现':'now','前':'front','些':'some','所':'place','同':'same','日':'day','手':'hand','又':'again','行':'go','意':'meaning','动':'move','方':'side','期':'period','它':'it','头':'head','经':'pass','长':'long','儿':'child','回':'return','位':'place','分':'part','爱':'love','老':'old','因':'cause','很':'very','给':'give','名':'name','法':'law','间':'between','斯':'this','知':'know','世':'world','什':'what','两':'two','次':'time','使':'make','身':'body','者':'one','被':'by','高':'high','已':'already','亲':'kin','其':'its','进':'enter','此':'this','话':'speech','常':'often','与':'and','活':'live','正':'just','感':'feel','见':'see','明':'bright','问':'ask','力':'power','理':'reason','尔':'you','点':'dot','文':'text','几':'few','定':'set','本':'book','公':'public','特':'special','做':'do','外':'out','孩':'child','相':'each','西':'west','果':'fruit','走':'walk','将':'will','月':'moon','十':'ten','实':'real','向':'toward','声':'sound','车':'car','全':'whole','信':'letter','重':'heavy','三':'three','机':'machine','工':'work','物':'thing','气':'air','每':'each','并':'and','别':'other','真':'true','打':'hit','太':'too','新':'new','比':'than','才':'just','便':'convenient','夫':'man','再':'again','书':'book','部':'part','水':'water','像':'like','眼':'eye','等':'wait','体':'body','却':'yet','加':'add','电':'electric','主':'main','界':'world','门':'door','利':'benefit','海':'sea','受':'receive','听':'listen','表':'table','德':'virtue','少':'few','克':'overcome','代':'generation','员':'member','许':'allow','先':'first','口':'mouth','由':'from','死':'die','安':'peace','写':'write','性':'nature','马':'horse','光':'light','白':'white','或':'or','住':'live','难':'hard','望':'hope','教':'teach','命':'life','花':'flower','结':'tie','乐':'joy','色':'color','更':'more','拉':'pull','东':'east','神':'god','记':'remember','处':'place','让':'let','母':'mother','父':'father','应':'should','直':'straight','字':'character','场':'field','平':'flat','报':'report','友':'friend','关':'close','放':'put','至':'to','张':'spread','认':'recognize','接':'receive','告':'tell','入':'enter','笑':'smile','内':'inside','英':'brave','军':'army','候':'wait','民':'people','岁':'year','往':'go','何':'what','度':'degree','山':'mountain','觉':'feel','路':'road','带':'bring','万':'ten-thousand','男':'male','边':'side','风':'wind','解':'solve','叫':'call','任':'duty','金':'gold','快':'fast','原':'origin','吃':'eat','妈':'mom','变':'change','通':'through','师':'teacher','立':'stand','象':'elephant','数':'number','四':'four','失':'lose','满':'full','战':'war','远':'far','格':'grid','士':'scholar','音':'sound','轻':'light','目':'eye','条':'strip','呢':'particle','病':'ill','始':'begin','达':'reach','深':'deep','完':'finish','今':'now','提':'raise','求':'seek','清':'clear','王':'king','化':'change','空':'empty','业':'work','思':'think','切':'cut','怎':'how','非':'wrong','找':'find','片':'slice','罗':'net','钱':'money','吗':'question','语':'language','元':'yuan','喜':'happy','曾':'once','离':'leave','飞':'fly','科':'subject','言':'speech','干':'dry','流':'flow','欢':'joy','约':'approx','各':'each','即':'then','指':'point','合':'fit','反':'anti','题':'topic','必':'must','该':'should','论':'discuss','交':'exchange','终':'end','林':'forest','请':'please','医':'doctor','晚':'late','制':'make','球':'ball','决':'decide','传':'pass','画':'draw','保':'keep','读':'read','运':'transport','及':'and','则':'then','房':'house','早':'early','院':'yard','量':'amount','苦':'bitter','火':'fire','布':'cloth','品':'product','近':'near','坐':'sit','产':'produce','答':'answer','星':'star','精':'essence','视':'view','五':'five','连':'connect','司':'company','巴':'hope','奇':'strange','管':'pipe','类':'class','未':'not','朋':'friend','且':'and','婚':'marry','台':'stage','夜':'night','青':'blue','北':'north','队':'team','久':'long','乎':'almost','越':'cross','观':'view','落':'fall','尽':'exhaust','形':'shape','影':'shadow','红':'red','爸':'dad','百':'hundred','令':'order','周':'week','吧':'bar','识':'know','步':'step','希':'hope','亚':'asia','术':'art','留':'stay','市':'city','半':'half','热':'hot','送':'send','兴':'prosper','造':'make','谈':'talk','容':'contain','极':'extreme','随':'follow','演':'perform','收':'receive','首':'head','根':'root','讲':'speak','整':'whole','式':'style','取':'take','照':'shine','办':'do','强':'strong','石':'stone','古':'ancient','华':'splendid','拿':'take','计':'count','您':'you','装':'pack','似':'like','足':'foot','双':'pair','妻':'wife','尼':'nun','转':'turn','诉':'sue','米':'rice','称':'call','丽':'beautiful','客':'guest','南':'south','领':'lead','节':'festival','衣':'clothes','站':'station','黑':'black','刻':'carve','统':'unify','断':'break','福':'blessing','城':'city','故':'reason','历':'history','惊':'startle','脸':'face','选':'choose','包':'bag','紧':'tight','争':'fight','另':'other','建':'build','维':'maintain','绝':'cut','树':'tree','系':'system','伤':'injure','示':'show','愿':'wish','持':'hold','千':'thousand','史':'history','谁':'who','准':'allow','联':'connect','妇':'woman','纪':'record','基':'base','买':'buy','志':'will','静':'quiet','阿':'ah','诗':'poem','独':'alone','复':'again','痛':'pain','消':'eliminate','社':'society','算':'count','义':'justice','竟':'unexpected','确':'sure','酒':'alcohol'
+};
+
+// ——把字表转题库
+const toneFallback = ch => '';
+const vocab = CHAR_BANK.split(/\s+/).filter(Boolean).map(ch=>({ char: ch, py: PINYIN[ch] || toneFallback(ch) || ch }));
+
+// ——工具：数字调 -> 声调；忽略声调判分
+const toneMap = { a:['ā','á','ǎ','à'], e:['ē','é','ě','è'], i:['ī','í','ǐ','ì'], o:['ō','ó','ǒ','ò'], u:['ū','ú','ǔ','ù'], v:['ǖ','ǘ','ǚ','ǜ'], 'ü':['ǖ','ǘ','ǚ','ǜ'] };
+function numberToTone(s){ s=s.toLowerCase().trim().replace('u:','v'); const m=s.match(/([a-züv]+)([1-5])$/); if(!m) return s.replace('v','ü'); let base=m[1].replace('v','ü'); const tone=+m[2]; if(tone===5) return base; const has={a:base.includes('a'),e:base.includes('e'),ou:base.includes('ou')}; let idx=-1; if(has.a) idx=base.indexOf('a'); else if(has.e) idx=base.indexOf('e'); else if(has.ou) idx=base.indexOf('o'); else{ const iu=base.indexOf('iu'); const ui=base.indexOf('ui'); if(iu!==-1) idx=iu+1; else if(ui!==-1) idx=ui+1; else idx=base.search(/[aeiouü]/);} if(idx<0) return base; const ch=base[idx]; const map=toneMap[ch]; if(!map) return base; return base.slice(0,idx)+map[tone-1]+base.slice(idx+1); }
+function stripTone(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ü/g,'u'); }
+function normalizeInput(s){ if(!s) return ''; s=s.toLowerCase().replace(/\s+/g,''); s=s.replace(/([a-züv]+)([1-5])$/, m=>numberToTone(m)); s=s.replace('u:','ü').replace('v','ü'); return s; }
+
+// ——状态
+let current={}; let pool=[]; let index=0; let mode='test';
+const charEl = document.getElementById('char');
+const resultEl = document.getElementById('result');
+const answerEl = document.getElementById('answer');
+const nextBtn = document.getElementById('next');
+const reshuffleBtn = document.getElementById('reshuffle');
+const progressEl = document.getElementById('progress');
+// review refs
+const flipEl = document.getElementById('flip');
+const rvChar = document.getElementById('rvChar');
+const rvPy = document.getElementById('rvPy');
+const rvEn = document.getElementById('rvEn');
+const btnFlip = document.getElementById('btnFlip');
+const btnNextReview = document.getElementById('btnNextReview');
+const progress2 = document.getElementById('progress2');
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+function initPool(){ pool=[...vocab]; shuffle(pool); index=0; updateProgress(); updateProgress2(); }
+function updateProgress(){ progressEl.textContent = `${index}/${pool.length}`; }
+function updateProgress2(){ progress2.textContent = `${index}/${pool.length}`; }
+
+function nextChar(){ if(index>=pool.length){ initPool(); } current = pool[index++]; charEl.textContent = current.char; answerEl.value=''; resultEl.innerHTML=''; nextBtn.disabled=true; updateProgress(); answerEl.focus(); }
+function nextCard(){ if(index>=pool.length){ initPool(); } current = pool[index++]; flipEl.classList.remove('flipped'); rvChar.textContent=current.char; rvPy.textContent = PINYIN[current.char] || current.py || ''; rvEn.textContent = EN[current.char] || ''; updateProgress2(); }
+
+function setMode(m){ mode=m; document.getElementById('modeTest').classList.toggle('hidden', m!=='test'); document.getElementById('modeReview').classList.toggle('hidden', m!=='review'); document.getElementById('tabTest').classList.toggle('active', m==='test'); document.getElementById('tabReview').classList.toggle('active', m==='review'); index=0; shuffle(pool); if(m==='test'){ nextChar(); } else { nextCard(); } }
+
+// ——发音（仍用于测试错题提示）
+let zhVoice=null; function pickZhVoice(){ const vs=speechSynthesis.getVoices(); zhVoice = vs.find(v=>v.lang && v.lang.toLowerCase().startsWith('zh')) || null; } window.speechSynthesis.onvoiceschanged = pickZhVoice; pickZhVoice();
+function speakChar(){ try{ const u=new SpeechSynthesisUtterance(current.char); u.lang=zhVoice?.lang||'zh-CN'; if(zhVoice) u.voice=zhVoice; u.rate=0.9; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
+
+// ——测试模式判分
+function check(){ const raw=answerEl.value; const ans=normalizeInput(raw); if(!ans) return; const expect=(PINYIN[current.char]||'').toLowerCase(); const ok = expect ? (stripTone(ans)===stripTone(expect)) : (stripTone(ans)===stripTone(current.py)); const shown=PINYIN[current.char]||current.py||''; if(ok){ resultEl.innerHTML = `✅ <span class="ok">${shown}</span>`; } else { resultEl.innerHTML = `❌ <span class="err">${shown}</span>`; speakChar(); } nextBtn.disabled=false; }
+
+// ——事件
+ document.getElementById('submit').onclick = check;
+ nextBtn.onclick = nextChar;
+ reshuffleBtn.onclick = ()=>{ initPool(); (mode==='test'?nextChar:nextCard)(); };
+ document.addEventListener('keydown', (e)=>{ if(mode==='test'){ if(e.key==='Enter'){ if(nextBtn.disabled) check(); else nextChar(); } } else { if(e.code==='Space'){ e.preventDefault(); flipEl.classList.toggle('flipped'); } if(e.key==='Enter'){ nextCard(); } } });
+ btnFlip.onclick=()=> flipEl.classList.toggle('flipped');
+ btnNextReview.onclick= nextCard;
+ document.getElementById('btnReshuffle2').onclick = ()=>{ initPool(); nextCard(); };
+ document.getElementById('tabTest').onclick = ()=> setMode('test');
+ document.getElementById('tabReview').onclick = ()=> setMode('review');
+
+// ——启动
+initPool();
+setMode('test');
+</script>
+</body>
+</html>
